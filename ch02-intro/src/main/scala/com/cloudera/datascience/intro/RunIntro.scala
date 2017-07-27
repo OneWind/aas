@@ -32,6 +32,13 @@ object RunIntro extends Serializable {
     import spark.implicits._
  
     val preview = spark.read.csv("hdfs:///user/ds/linkage")
+/*    
+  val parsed = spark.read.
+  option("header", "true").
+  option("nullValue", "?").
+  option("inferSchema", "true").
+  csv("linkage")
+*/
     preview.show()
     preview.printSchema()
 
@@ -39,7 +46,7 @@ object RunIntro extends Serializable {
       .option("header", "true")
       .option("nullValue", "?")
       .option("inferSchema", "true")
-      .csv("hdfs:///user/ds/linkage")
+      .csv("linkage")
     parsed.show()
     parsed.printSchema()
 
@@ -100,6 +107,10 @@ object RunIntro extends Serializable {
         md.cmp_by + md.cmp_bd + md.cmp_bm).value
   }
 
+  def scoreMatchDataInt(md: MatchData): Int = {
+    md.cmp_plz.getOrElse(0)
+  }
+
   def pivotSummary(desc: DataFrame): DataFrame = {
     val lf = longForm(desc)
     lf.groupBy("field").
@@ -117,3 +128,29 @@ object RunIntro extends Serializable {
     .toDF("metric", "field", "value")
   }
 }
+
+
+    val schema = summary.schema
+    val df = summary.flatMap(row => {
+      val metric = row.getString(0)
+      (1 until row.size).map(i => (metric, schema(i).name, row.getString(i).toDouble))
+    })
+    .toDF("metric", "field", "value")
+
+
+val schema = summary.schema
+val longForm = summary.flatMap(row => {
+  val metric = row.getString(0)
+  (1 until row.size).map(i => {
+    (metric, schema(i).name, row.getString(i).toDouble)
+  })
+})
+
+val longDF = longForm.toDF("metric", "field", "value")
+longDF.show()
+
+val wideDF = longDF.
+  groupBy("field").
+  pivot("metric", Seq("count", "mean", "stddev", "min", "max")).
+  agg(first("value"))
+wideDF.select("field", "count", "mean").show()

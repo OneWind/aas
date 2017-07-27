@@ -19,9 +19,10 @@ object RunKMeans {
     val spark = SparkSession.builder().getOrCreate()
 
     val data = spark.read.
+      format("com.databricks.spark.csv").
       option("inferSchema", true).
       option("header", false).
-      csv("hdfs:///user/ds/kddcup.data").
+      csv("kddcup.data").
       toDF(
         "duration", "protocol_type", "service", "flag",
         "src_bytes", "dst_bytes", "land", "wrong_fragment", "urgent",
@@ -36,7 +37,7 @@ object RunKMeans {
         "dst_host_same_src_port_rate", "dst_host_srv_diff_host_rate",
         "dst_host_serror_rate", "dst_host_srv_serror_rate",
         "dst_host_rerror_rate", "dst_host_srv_rerror_rate",
-        "label")
+        "label").repartition(100)
 
     data.cache()
 
